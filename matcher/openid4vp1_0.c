@@ -160,6 +160,16 @@ void report_matched_credential(uint32_t wasm_version, cJSON* matched_doc, cJSON*
                     AddFieldForStringIdEntry(id, claim_display, claim_value);
                 }
             }
+            if (wasm_version >= 5) {
+                cJSON *display_info = cJSON_GetObjectItem(c, "metadata_display_text");
+                if (cJSON_IsObject(display_info)) {
+                    char *display_text = cJSON_GetStringValue(cJSON_GetObjectItem(display_info, "text"));
+                    if (display_text != NULL) {
+                        printf("Calling AddMetadataDisplayTextForEntry for cred_id: %s", matched_id);
+                        AddMetadataDisplayTextForEntry(matched_id, display_text);
+                    }
+                }
+            }
         }
     }
 }

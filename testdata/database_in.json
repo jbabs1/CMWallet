@@ -1880,7 +1880,9 @@
       },
       "displayData": {
         "title": "Jon's Boarding Pass"
-  
+      },
+      "metadata_display_text": {
+        "text": "Boarding pass info"
       },
       "credentials": [
         {

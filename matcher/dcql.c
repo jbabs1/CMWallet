@@ -118,6 +118,10 @@ cJSON* MatchCredential(cJSON* credential, cJSON* credential_store) {
             cJSON* matched_credential = cJSON_CreateObject();
             cJSON_AddItemReferenceToObject(matched_credential, "id", cJSON_GetObjectItemCaseSensitive(candidate, "id"));
             cJSON_AddItemReferenceToObject(matched_credential, "display", cJSON_GetObjectItemCaseSensitive(candidate, "display"));
+            cJSON* metadata_display_text = cJSON_GetObjectItemCaseSensitive(candidate, "metadata_display_text");
+            if (metadata_display_text != NULL) {
+                cJSON_AddItemReferenceToObject(matched_credential, "metadata_display_text", metadata_display_text);
+            }
             cJSON* matched_claim_names = cJSON_CreateArray();
             cJSON* matched_claim_metadata = cJSON_CreateArray();
             //printf("candidate %s\n", cJSON_Print(candidate));
@@ -133,6 +137,10 @@ cJSON* MatchCredential(cJSON* credential, cJSON* credential_store) {
                 cJSON* matched_credential = cJSON_CreateObject();
                 cJSON_AddItemReferenceToObject(matched_credential, "id", cJSON_GetObjectItemCaseSensitive(candidate, "id"));
                 cJSON_AddItemReferenceToObject(matched_credential, "display", cJSON_GetObjectItemCaseSensitive(candidate, "display"));
+                cJSON* metadata_display_text = cJSON_GetObjectItemCaseSensitive(candidate, "metadata_display_text");
+                if (metadata_display_text != NULL) {
+                    cJSON_AddItemReferenceToObject(matched_credential, "metadata_display_text", metadata_display_text);
+                }
                 cJSON* matched_claim_names = cJSON_CreateArray();
                 cJSON* matched_claim_metadata = cJSON_CreateArray();
 
