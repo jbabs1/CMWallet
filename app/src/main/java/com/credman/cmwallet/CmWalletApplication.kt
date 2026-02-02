@@ -10,6 +10,7 @@ import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.registry.provider.RegisterCreationOptionsRequest
 import androidx.credentials.registry.provider.RegistryManager
 import androidx.credentials.registry.provider.digitalcredentials.DigitalCredentialRegistry
+import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
 import androidx.room.Room
 import com.credman.cmwallet.data.repository.CredentialRepository
 import com.credman.cmwallet.data.room.CredentialDatabase
@@ -78,12 +79,7 @@ class CmWalletApplication : Application() {
             credentialRepo.credentialRegistryDatabase.collect { openid4vpRegistry ->
                 Log.i(TAG, "Credentials changed $openid4vpRegistry")
 //                registryManager.registerCredentials(openid4vpRegistry)
-                val response = registryManager.registerCredentials(object : DigitalCredentialRegistry(
-                    id = openid4vpRegistry.id,
-                    credentials = openid4vpRegistry.credentials,
-                    matcher = openId4VP1_0Matcher
-                ) {})
-                Log.i(TAG, "Response type $response.type")
+                registryManager.registerCredentials(openid4vpRegistry)
 
                 // Phone number verification demo
                 credentialRepo.registerPhoneNumberVerification(
