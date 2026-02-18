@@ -3,6 +3,7 @@ package com.credman.cmwallet.data.model
 import com.credman.cmwallet.decodeBase64UrlNoPadding
 import com.credman.cmwallet.mdoc.MDoc
 import com.credman.cmwallet.openid4vci.data.CredentialConfiguration
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -46,5 +47,7 @@ data class CredentialKeyHardware(
 data class CredentialDisplayData(
     val title: String,
     val subtitle: String?,
-    val icon: String?
+    val icon: String?,
+    val explainer: String?,
+    val metadataDisplayText: String?,
 )

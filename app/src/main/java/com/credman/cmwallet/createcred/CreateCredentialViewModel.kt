@@ -24,6 +24,7 @@ import com.credman.cmwallet.data.model.CredentialItem
 import com.credman.cmwallet.data.model.CredentialKeySoftware
 import com.credman.cmwallet.data.room.CredentialDatabaseItem
 import com.credman.cmwallet.decodeBase64UrlNoPadding
+import com.credman.cmwallet.getcred.MatchedCredential
 import com.credman.cmwallet.getcred.createOpenID4VPResponse
 import com.credman.cmwallet.mdoc.MDoc
 import com.credman.cmwallet.openid4vci.OpenId4VCI
@@ -132,45 +133,56 @@ class CreateCredentialViewModel : ViewModel() {
             val display = credentialResponse.display?.firstOrNull()
             val configDisplay = config.credentialMetadata?.display?.firstOrNull()
             val newCredentialItem = CredentialItem(
-                id = Uuid.random().toHexString(),
-                config = config,
-                displayData = CredentialDisplayData(
-                    title = display?.name ?: configDisplay?.name ?: "Unknown",
-                    subtitle = display?.description ?: configDisplay?.description,
-                    icon = display?.logo?.uri.imageUriToImageB64()
-                ),
-                credentials = credentialResponse.credentials!!.map {
-                    val deviceKeyPair = when (config) {
-                        is CredentialConfigurationMDoc -> {
-                            val mdoc = MDoc(it.credential.decodeBase64UrlNoPadding())
-                            val deviceKey = mdoc.deviceKey
-                            deviceKeys.firstOrNull {
-                                val public = it.public as ECPublicKey
-                                val x = String(public.w.affineX.toFixedByteArray(32))
-                                val y = String(public.w.affineY.toFixedByteArray(32))
-                                x == deviceKey.first && y == deviceKey.second
-                            }
-                        }
-                        is CredentialConfigurationSdJwtVc -> {
-                            val issuerJwtString = it.credential.split('~')[0]
-                            val cnfKey = IssuerJwt(issuerJwtString).payload.getJSONObject("cnf").getJSONObject("jwk")
-                            deviceKeys.firstOrNull {
-                                val public = it.public as ECPublicKey
-                                val x = public.w.affineX.toFixedByteArray(32).toBase64UrlNoPadding()
-                                val y = public.w.affineY.toFixedByteArray(32).toBase64UrlNoPadding()
-                                x == cnfKey.getString("x") && y == cnfKey.getString("y")
-                            }
-                        }
-                        else -> throw UnsupportedOperationException("Unknown configuration $config")
+              id = Uuid.random().toHexString(),
+              config = config,
+              displayData = CredentialDisplayData(
+                title = display?.name ?: configDisplay?.name ?: "Unknown",
+                subtitle = display?.description ?: configDisplay?.description,
+                icon = display?.logo?.uri.imageUriToImageB64(),
+                explainer = null,
+                metadataDisplayText = null
+              ),
+              credentials = credentialResponse.credentials!!.map {
+                val deviceKeyPair = when (config) {
+                  is CredentialConfigurationMDoc -> {
+                    val mdoc = MDoc(it.credential.decodeBase64UrlNoPadding())
+                    val deviceKey = mdoc.deviceKey
+                    deviceKeys.firstOrNull {
+                      val public = it.public as ECPublicKey
+                      val x = String(public.w.affineX.toFixedByteArray(32))
+                      val y = String(public.w.affineY.toFixedByteArray(32))
+                      x == deviceKey.first && y == deviceKey.second
                     }
-                    Credential(
-                        key = CredentialKeySoftware(
-                            publicKey = Base64.encodeToString(deviceKeyPair!!.public.encoded, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
-                            privateKey = Base64.encodeToString(deviceKeyPair.private.encoded, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
-                        ),
-                        credential = it.credential
-                    )
+                  }
+
+                  is CredentialConfigurationSdJwtVc -> {
+                    val issuerJwtString = it.credential.split('~')[0]
+                    val cnfKey =
+                      IssuerJwt(issuerJwtString).payload.getJSONObject("cnf").getJSONObject("jwk")
+                    deviceKeys.firstOrNull {
+                      val public = it.public as ECPublicKey
+                      val x = public.w.affineX.toFixedByteArray(32).toBase64UrlNoPadding()
+                      val y = public.w.affineY.toFixedByteArray(32).toBase64UrlNoPadding()
+                      x == cnfKey.getString("x") && y == cnfKey.getString("y")
+                    }
+                  }
+
+                  else -> throw UnsupportedOperationException("Unknown configuration $config")
                 }
+                Credential(
+                  key = CredentialKeySoftware(
+                    publicKey = Base64.encodeToString(
+                      deviceKeyPair!!.public.encoded,
+                      Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+                    ),
+                    privateKey = Base64.encodeToString(
+                      deviceKeyPair.private.encoded,
+                      Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+                    ),
+                  ),
+                  credential = it.credential
+                )
+              }
             )
             newCredentials.add(newCredentialItem)
         }
@@ -196,46 +208,59 @@ class CreateCredentialViewModel : ViewModel() {
                         val display = credentialResponse.display?.firstOrNull()
                         val displayFromOffer = config.credentialMetadata?.display?.firstOrNull()
                         val newCredentialItem = CredentialItem(
-                            id = Uuid.random().toHexString(),
-                            config = config,
-                            displayData = CredentialDisplayData(
-                                title = display?.name ?: displayFromOffer?.name ?:"Unknown",
-                                subtitle = display?.description ?: displayFromOffer?.description,
-                                icon = display?.logo?.uri.imageUriToImageB64()
-                            ),
-                            credentials = credentialResponse.credentials!!.map {
-                                val deviceKeyPair = when (config) {
-                                    is CredentialConfigurationMDoc -> {
-                                        val mdoc = MDoc(it.credential.decodeBase64UrlNoPadding())
-                                        val deviceKey = mdoc.deviceKey
-                                        deviceKeys.firstOrNull {
-                                            val public = it.public as ECPublicKey
-                                            val x = String(public.w.affineX.toFixedByteArray(32))
-                                            val y = String(public.w.affineY.toFixedByteArray(32))
-                                            x == deviceKey.first && y == deviceKey.second
-                                        }
-                                    }
-                                    is CredentialConfigurationSdJwtVc -> {
-                                        val issuerJwtString = it.credential.split('~')[0]
-                                        val cnfKey = IssuerJwt(issuerJwtString).payload.getJSONObject("cnf").getJSONObject("jwk")
-                                        deviceKeys.firstOrNull {
-                                            val public = it.public as ECPublicKey
-                                            val x = public.w.affineX.toFixedByteArray(32).toBase64UrlNoPadding()
-                                            val y = public.w.affineY.toFixedByteArray(32).toBase64UrlNoPadding()
-                                            x == cnfKey.getString("x") && y == cnfKey.getString("y")
-                                        }
-                                    }
-                                    else -> throw UnsupportedOperationException("Unknown configuration $config")
+                          id = Uuid.random().toHexString(),
+                          config = config,
+                          displayData = CredentialDisplayData(
+                            title = display?.name ?: displayFromOffer?.name ?: "Unknown",
+                            subtitle = display?.description ?: displayFromOffer?.description,
+                            icon = display?.logo?.uri.imageUriToImageB64(),
+                            explainer = null,
+                            metadataDisplayText = null
+                          ),
+                          credentials = credentialResponse.credentials!!.map {
+                            val deviceKeyPair = when (config) {
+                              is CredentialConfigurationMDoc -> {
+                                val mdoc = MDoc(it.credential.decodeBase64UrlNoPadding())
+                                val deviceKey = mdoc.deviceKey
+                                deviceKeys.firstOrNull {
+                                  val public = it.public as ECPublicKey
+                                  val x = String(public.w.affineX.toFixedByteArray(32))
+                                  val y = String(public.w.affineY.toFixedByteArray(32))
+                                  x == deviceKey.first && y == deviceKey.second
                                 }
+                              }
 
-                                Credential(
-                                    key = CredentialKeySoftware(
-                                        publicKey = Base64.encodeToString(deviceKeyPair!!.public.encoded, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
-                                        privateKey = Base64.encodeToString(deviceKeyPair.private.encoded, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
-                                    ),
-                                    credential = it.credential
-                                )
+                              is CredentialConfigurationSdJwtVc -> {
+                                val issuerJwtString = it.credential.split('~')[0]
+                                val cnfKey = IssuerJwt(issuerJwtString).payload.getJSONObject("cnf")
+                                  .getJSONObject("jwk")
+                                deviceKeys.firstOrNull {
+                                  val public = it.public as ECPublicKey
+                                  val x =
+                                    public.w.affineX.toFixedByteArray(32).toBase64UrlNoPadding()
+                                  val y =
+                                    public.w.affineY.toFixedByteArray(32).toBase64UrlNoPadding()
+                                  x == cnfKey.getString("x") && y == cnfKey.getString("y")
+                                }
+                              }
+
+                              else -> throw UnsupportedOperationException("Unknown configuration $config")
                             }
+
+                            Credential(
+                              key = CredentialKeySoftware(
+                                publicKey = Base64.encodeToString(
+                                  deviceKeyPair!!.public.encoded,
+                                  Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+                                ),
+                                privateKey = Base64.encodeToString(
+                                  deviceKeyPair.private.encoded,
+                                  Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+                                ),
+                              ),
+                              credential = it.credential
+                            )
+                          }
                         )
                         newCredentials.add(newCredentialItem)
                     }
@@ -342,10 +367,12 @@ class CreateCredentialViewModel : ViewModel() {
                             val vpResponse = createOpenID4VPResponse(
                                 openId4VPRequest,
                                 "wallet",
-                                listOf(com.credman.cmwallet.getcred.MatchedCredential(
-                                    selectedCredential,
-                                    matchedCredential
-                                ))
+                                listOf(
+                                    MatchedCredential(
+                                        selectedCredential,
+                                        matchedCredential
+                                    )
+                                )
                             )
                             uiState = uiState.copy(vpResponse = selectedCredential, tmpCode = grant)
 
